@@ -32,10 +32,12 @@ class ALACartPoleAgent(nn.Module):
 
         y = ala_out["y"]
         action_logits = self.action_head(y)
-        dist = torch.distributions.Categorical(F.softmax(action_logits, dim=-1))
+        probs = F.softmax(action_logits, dim=-1)
+        dist = torch.distributions.Categorical(probs)
         action = dist.sample()
         log_prob = dist.log_prob(action)
-        return action.item(), log_prob, ala_out["context"]
+        entropy = -(probs * torch.log(probs + 1e-8)).sum(dim=-1).mean()
+        return action.item(), log_prob, entropy, ala_out["context"]
 
     def process_step(self, state: np.ndarray, next_state: np.ndarray, context=None):
         """Process step with x_next for prediction loss and memory update"""
@@ -76,6 +78,7 @@ def train(args):
 
         log_probs = []
         rewards = []
+        entropies = []
         pred_phis = []
         target_phis = []
         memory_counts = []
@@ -85,7 +88,7 @@ def train(args):
 
         while not done:
             # Sample action (no x_next yet - note: ALA runs twice per step, see below)
-            action, log_prob, context = agent.get_action(state, context)
+            action, log_prob, entropy, context = agent.get_action(state, context)
 
             # Step environment
             next_state, reward, terminated, truncated, _ = env.step(action)
@@ -97,6 +100,7 @@ def train(args):
 
             # Collect data
             log_probs.append(log_prob)
+            entropies.append(entropy)
             rewards.append(reward)
             episode_reward += reward
 
@@ -134,8 +138,10 @@ def train(args):
             target_phis = torch.stack(target_phis)
             prediction_loss = F.mse_loss(pred_phis, target_phis)
 
-        # Total loss
-        total_loss = policy_loss + 0.1 * prediction_loss
+        # Total loss with entropy bonus to prevent collapse
+        entropies_tensor = torch.stack(entropies)
+        entropy = entropies_tensor.mean()
+        total_loss = policy_loss + 0.1 * prediction_loss - 0.01 * entropy
 
         # Optimize
         optimizer.zero_grad()
