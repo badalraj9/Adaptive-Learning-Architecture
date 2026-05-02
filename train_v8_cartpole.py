@@ -9,7 +9,7 @@ from model.ALA_v8 import ALAV8, ALAV8Config, count_trainable_parameters
 
 
 class ALACartPoleAgent(nn.Module):
-    def __init__(self, max_primitives=256, device="cpu"):
+    def __init__(self, max_primitives=256, memory_warmup=8, memory_interval=4, device="cpu"):
         super().__init__()
         self.state_proj = nn.Linear(4, 64)  # Project 4-dim state to input_dim=64
         self.cfg = ALAV8Config(
@@ -18,6 +18,8 @@ class ALACartPoleAgent(nn.Module):
             d_model=256,
             hidden_dim=512,
             max_primitives=max_primitives,
+            memory_warmup=memory_warmup,
+            memory_interval=memory_interval,
             device=device
         )
         self.ala = ALAV8(self.cfg)
@@ -57,7 +59,13 @@ def train(args):
     print(f"Using device: {device}")
 
     env = gym.make("CartPole-v1")  # Headless, no rendering
-    agent = ALACartPoleAgent(max_primitives=args.max_primitives, device=device).to(device)
+    agent = ALACartPoleAgent(
+        max_primitives=args.max_primitives,
+        memory_warmup=args.memory_warmup,
+        memory_interval=4,
+        device=device
+    ).to(device)
+    print(f"Memory warmup: {agent.ala.cfg.memory_warmup}")
     total_params = count_trainable_parameters(agent)
     print(f"Total trainable parameters: {total_params:,}")
 
@@ -141,7 +149,7 @@ def train(args):
         # Total loss with entropy bonus to prevent collapse
         entropies_tensor = torch.stack(entropies)
         entropy = entropies_tensor.mean()
-        total_loss = policy_loss + 0.1 * prediction_loss - 0.01 * entropy
+        total_loss = policy_loss + 0.1 * prediction_loss - 0.001 * entropy
 
         # Optimize
         optimizer.zero_grad()
@@ -188,6 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--max-primitives", type=int, default=256, help="Max primitives for ALA")
+    parser.add_argument("--memory-warmup", type=int, default=8, help="Memory warmup episodes")
     parser.add_argument("--cpu", action="store_true", help="Use CPU")
     args = parser.parse_args()
     train(args)
