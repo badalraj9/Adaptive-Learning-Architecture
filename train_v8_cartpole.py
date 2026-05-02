@@ -82,14 +82,14 @@ def train(args):
         done = False
 
         while not done:
-            # Sample action (no x_next yet)
+            # Sample action (no x_next yet - note: ALA runs twice per step, see below)
             action, log_prob, context = agent.get_action(state, context)
 
             # Step environment
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            # Process step with x_next for prediction/memory
+            # Process step with x_next (second ALA forward pass for prediction/memory)
             next_state_np = np.array(next_state, dtype=np.float32) if not done else None
             ala_out = agent.process_step(state, next_state_np, context)
 
@@ -118,6 +118,8 @@ def train(args):
             G = r + args.gamma * G
             returns.insert(0, G)
         returns = torch.tensor(returns, dtype=torch.float32, device=device)
+        # Normalize returns to reduce variance
+        returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
         # Policy loss (REINFORCE)
         log_probs = torch.stack(log_probs)
