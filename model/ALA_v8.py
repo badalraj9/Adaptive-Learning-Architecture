@@ -216,14 +216,12 @@ class Settling(nn.Module):
         self.norm = nn.LayerNorm(cfg.d_model)
 
     def forward(self, state: torch.Tensor, steps: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        with torch.no_grad():
-            self.weight.data = 0.5 * (self.weight.data + self.weight.data.T)
-
+        w = 0.5 * (self.weight + self.weight.T)  # symmetric copy, no in-place
         current = state
         max_steps = int(steps.item())
         last_delta = torch.zeros(state.shape[0], 1, device=state.device)
         for _ in range(max_steps):
-            nxt = torch.tanh(current @ self.weight.T)
+            nxt = torch.tanh(current @ w.T)
             last_delta = (nxt - current).norm(dim=-1, keepdim=True)
             current = nxt
         quality = torch.exp(-last_delta).clamp(0.0, 1.0)
