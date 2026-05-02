@@ -67,7 +67,9 @@ def train(args):
     best_avg_reward = -float("inf")
 
     for episode in range(1, args.episodes + 1):
-        state, _ = env.reset()
+        state = env.reset()
+        if isinstance(state, tuple):
+            state = state[0]
         state = np.array(state, dtype=np.float32)
         agent.ala.reset_state()  # Reset context at start of episode
         context = None
