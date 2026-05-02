@@ -155,7 +155,7 @@ class PrimitiveMemory(nn.Module):
             return torch.zeros_like(phi), torch.zeros(phi.shape[0], 1, device=phi.device)
 
         top_k = min(top_k or self.cfg.primitive_top_k, n)
-        p = self.primitives[:n].to(phi.device)
+        p = self.primitives[:n].clone().to(phi.device)
         q = self.query(phi)
         k = self.key(p)
         scores = q @ k.T * self.scale
