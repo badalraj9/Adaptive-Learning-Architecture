@@ -168,7 +168,7 @@ class PrimitiveMemory(nn.Module):
 
         with torch.no_grad():
             flat_idx = top_idx.reshape(-1)
-            self.usage.index_add_(0, flat_idx.cpu(), torch.ones_like(flat_idx, dtype=self.usage.dtype).cpu())
+            self.usage.index_add_(0, flat_idx.to(self.usage.device), torch.ones(flat_idx.shape[0], dtype=self.usage.dtype, device=self.usage.device))
 
         return read, confidence
 
