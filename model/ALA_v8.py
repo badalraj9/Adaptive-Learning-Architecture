@@ -183,6 +183,9 @@ class PrimitiveMemory(nn.Module):
             return False
 
         improvement = (baseline_loss.detach() - memory_loss.detach()).mean().item()
+        if self.cfg.max_primitives == 0:
+            return False
+
         bootstrap_first = self.n == 0 and float(baseline_loss.detach().mean().item()) > 0.05
         if improvement < self.cfg.primitive_accept_margin and not bootstrap_first:
             return False
