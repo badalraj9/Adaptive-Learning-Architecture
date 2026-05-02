@@ -1,0 +1,7 @@
+torch
+numpy
+pypdf
+transformers
+accelerate
+sentencepiece
+protobuf
