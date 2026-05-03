@@ -180,8 +180,8 @@ class PrimitiveMemory(nn.Module):
         step: int,
     ) -> bool:
         print(f"maybe_add called: step={step}, warmup={self.cfg.memory_warmup}, interval={self.cfg.memory_interval}, n={self.n}")
-        if step < self.cfg.memory_warmup or step % self.cfg.memory_interval != 0:
-            print(f"  -> blocked by warmup or interval")
+        if step < self.cfg.memory_warmup:
+            print(f"  -> blocked by warmup")
             return False
 
         improvement = (baseline_loss.detach() - memory_loss.detach()).mean().item()
