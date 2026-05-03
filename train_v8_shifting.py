@@ -150,6 +150,15 @@ def main():
                 baseline_recovering = True
                 ala_recovery_start = step
                 baseline_recovery_start = step
+            else:
+                with torch.no_grad():
+                    phi = output["phi"].mean(dim=0)
+                    phi = F.normalize(phi, dim=0)
+                    n = model.memory.n
+                    if n < model.memory.cfg.max_primitives:
+                        model.memory.primitives[n].copy_(phi)
+                        model.memory.count = model.memory.count + 1
+                        print(f"[Step {step}] Force-stored regime {regime_mod} as primitive {n}")
             seen_regime_mods.add(regime_mod)
         prev_regime = regime
 
