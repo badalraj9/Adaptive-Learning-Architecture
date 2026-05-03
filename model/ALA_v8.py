@@ -179,9 +179,7 @@ class PrimitiveMemory(nn.Module):
         memory_loss: torch.Tensor,
         step: int,
     ) -> bool:
-        print(f"maybe_add called: step={step}, warmup={self.cfg.memory_warmup}, interval={self.cfg.memory_interval}, n={self.n}")
         if step < self.cfg.memory_warmup:
-            print(f"  -> blocked by warmup")
             return False
 
         improvement = (baseline_loss.detach() - memory_loss.detach()).mean().item()
