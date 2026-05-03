@@ -98,7 +98,7 @@ def main():
     print("\n=== Training baseline (no memory) ===")
     args_baseline = argparse.Namespace(**vars(args))
     args_baseline.max_primitives = 0
-    model_b, opt_b, dynamics_b, cfg_b, device_b = train_ala(args_baseline)
+    model_b, opt_b, _, cfg_b, device_b = train_ala(args_baseline)
     print(f"Baseline parameters: {count_trainable_parameters(model_b)}")
 
     metrics = {
@@ -131,8 +131,7 @@ def main():
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
 
-        x_b, x_next_b = dynamics_b.sample(args.batch_size, step)
-        x_b, x_next_b = x_b.to(device_b), x_next_b.to(device_b)
+        x_b, x_next_b = x.detach(), x_next.detach()
         output_b = model_b(x_b, x_next_b, update_memory=False)
         pred_loss_b = F.mse_loss(output_b["y"], x_next_b).mean()
         loss_b = pred_loss_b.mean()
