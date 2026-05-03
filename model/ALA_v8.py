@@ -280,9 +280,11 @@ class ALAV8(nn.Module):
 
         salience = torch.sigmoid(4.0 * base_pred_error + 0.25 * change)
         controls = self.strategy(phi, context, base_pred_error.detach(), change.detach())
-        alpha_fast = 0.5 * (1.0 - salience) + 0.5 * controls["alpha_fast"]
+        alpha_fast = 0.5 * salience + 0.5 * controls["alpha_fast"]
 
         memory_read, memory_confidence = self.memory(phi)
+        memory_gate = memory_confidence * (1.0 - alpha_fast)
+        alpha_fast = alpha_fast * (1.0 - memory_gate) + memory_gate * (1.0 - alpha_fast)
         settled, settle_quality = self.settling(memory_read + context, controls["settle_steps"])
         memory_gain = (1.0 - alpha_fast) * memory_confidence
         pred_phi_next = base_pred_phi_next + memory_gain * self.memory_predictor(settled)
